@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">StoryApp</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="story_app">Story App</string>
+    <string name="continue_to_app">Continue To App</string>
+    <string name="password_length">Password has to contain at least 8 character</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="log_in">Log In</string>
+    <string name="register">Don\'t have an account? Register</string>
+    <string name="register_title">Register</string>
+    <string name="loginlink">Already have an account? login</string>
+    <string name="register_succeed">Register Succeeded, Please Login</string>
+    <string name="continue_login">Continue</string>
+    <string name="name">Name</string>
+    <string name="login_err">User doesn\'t exist or password doesn\'t match</string>
+    <string name="imageview">ImageView</string>
+    <string name="fab">FAB</string>
+    <string name="gallery">Gallery</string>
+    <string name="camera">Camera</string>
+    <string name="description">Add a description</string>
+    <string name="addstory">Add Story</string>
+    <string name="permission">Failed to get permission</string>
+    <string name="upload_picture">You have to input a picture and description</string>
+</resources>
