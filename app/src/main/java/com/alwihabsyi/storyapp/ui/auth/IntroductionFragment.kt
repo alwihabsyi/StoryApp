@@ -6,24 +6,17 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.alwihabsyi.storyapp.R
+import com.alwihabsyi.storyapp.data.Preferences
 import com.alwihabsyi.storyapp.databinding.FragmentIntroductionBinding
-import com.alwihabsyi.storyapp.ui.ViewModelFactory
-import com.alwihabsyi.storyapp.ui.auth.viewmodel.IntroductionViewModel
 import com.alwihabsyi.storyapp.ui.main.MainActivity
+import com.alwihabsyi.storyapp.utils.Constants.TOKEN
 
 class IntroductionFragment : Fragment() {
 
     private var _binding: FragmentIntroductionBinding? = null
     private val binding get() = _binding!!
-
-    private val viewModel by viewModels<IntroductionViewModel> {
-        ViewModelFactory.getInstance(
-            requireActivity()
-        )
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,12 +39,13 @@ class IntroductionFragment : Fragment() {
     }
 
     private fun observer() {
-        viewModel.getSession().observe(viewLifecycleOwner) {
-            if (it.isLogin!!) {
-                val intent = Intent(requireContext(), MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-                startActivity(intent)
-            }
+        val sharedPref = Preferences.init(requireContext(), "session")
+        val token = sharedPref.getString(TOKEN, "")
+
+        if (token != "") {
+            val intent = Intent(requireContext(), MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(intent)
         }
     }
 

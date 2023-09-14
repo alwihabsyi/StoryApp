@@ -5,10 +5,12 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
+import com.alwihabsyi.storyapp.data.Preferences
 import com.alwihabsyi.storyapp.data.Result
 import com.alwihabsyi.storyapp.data.remote.ListStory
 import com.alwihabsyi.storyapp.databinding.ActivityDetailBinding
 import com.alwihabsyi.storyapp.ui.ViewModelFactory
+import com.alwihabsyi.storyapp.utils.Constants.TOKEN
 import com.alwihabsyi.storyapp.utils.glide
 import com.alwihabsyi.storyapp.utils.hide
 import com.alwihabsyi.storyapp.utils.show
@@ -19,7 +21,7 @@ class DetailActivity : AppCompatActivity() {
     private var _binding: ActivityDetailBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel by viewModels<DetailViewModel> { ViewModelFactory.getInstance(this) }
+    private val viewModel by viewModels<DetailViewModel> { ViewModelFactory() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,9 +33,11 @@ class DetailActivity : AppCompatActivity() {
 
     private fun observer() {
         val userId = intent.getStringExtra("id")
+        val sharedPref = Preferences.init(this, "session")
+        val token = sharedPref.getString(TOKEN, "")
 
         userId?.let {
-            viewModel.getUserDetail(it).observe(this) { result ->
+            viewModel.getUserDetail(token!!, it).observe(this) { result ->
                 when (result) {
                     is Result.Loading -> {
                         hideUI()

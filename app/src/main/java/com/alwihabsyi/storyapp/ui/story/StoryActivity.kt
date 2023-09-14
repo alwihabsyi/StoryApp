@@ -15,10 +15,12 @@ import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.alwihabsyi.storyapp.R
+import com.alwihabsyi.storyapp.data.Preferences
 import com.alwihabsyi.storyapp.data.Result
 import com.alwihabsyi.storyapp.databinding.ActivityStoryBinding
 import com.alwihabsyi.storyapp.ui.ViewModelFactory
 import com.alwihabsyi.storyapp.ui.main.MainActivity
+import com.alwihabsyi.storyapp.utils.Constants.TOKEN
 import com.alwihabsyi.storyapp.utils.createTempFile
 import com.alwihabsyi.storyapp.utils.hide
 import com.alwihabsyi.storyapp.utils.reduceFileImage
@@ -36,7 +38,7 @@ class StoryActivity : AppCompatActivity() {
     private var _binding: ActivityStoryBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel by viewModels<StoryViewModel> { ViewModelFactory.getInstance(this) }
+    private val viewModel by viewModels<StoryViewModel> { ViewModelFactory() }
 
     private var photoPath: String? = null
     private var setFile: File? = null
@@ -88,8 +90,10 @@ class StoryActivity : AppCompatActivity() {
                 requestImageFile
             )
             val descriptionCast = description.toRequestBody("text/plain".toMediaType())
+            val sharedPref = Preferences.init(this, "session")
+            val token = sharedPref.getString(TOKEN, "")
 
-            viewModel.uploadImage(imageMultipart, descriptionCast).observe(this) {
+            viewModel.uploadImage(token!!, imageMultipart, descriptionCast).observe(this) {
                 when (it) {
                     is Result.Loading -> {
                         binding.buttonAdd.text = ""

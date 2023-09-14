@@ -9,11 +9,11 @@ import android.view.ViewGroup
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.alwihabsyi.storyapp.R
+import com.alwihabsyi.storyapp.data.Preferences
 import com.alwihabsyi.storyapp.data.Result
 import com.alwihabsyi.storyapp.databinding.FragmentLoginBinding
 import com.alwihabsyi.storyapp.ui.ViewModelFactory
 import com.alwihabsyi.storyapp.ui.auth.viewmodel.LoginViewModel
-import com.alwihabsyi.storyapp.ui.main.MainActivity
 import com.alwihabsyi.storyapp.utils.hide
 import com.alwihabsyi.storyapp.utils.show
 import com.alwihabsyi.storyapp.utils.toast
@@ -24,9 +24,7 @@ class LoginFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel by viewModels<LoginViewModel> {
-        ViewModelFactory.getInstance(
-            requireActivity()
-        )
+        ViewModelFactory()
     }
 
     override fun onCreateView(
@@ -51,37 +49,45 @@ class LoginFragment : Fragment() {
         binding.btnLogin.setOnClickListener {
             val email = binding.edLoginEmail.text.toString()
             val password = binding.edLoginPassword.text.toString()
+
             login(email, password)
         }
     }
 
     private fun login(email: String, password: String) {
-        viewModel.login(email, password).observe(viewLifecycleOwner) {
-            when (it) {
+
+        viewModel.login(email, password).observe(viewLifecycleOwner) { result ->
+            when (result) {
                 is Result.Loading -> {
                     binding.progressBar.show()
                     binding.btnLogin.text = ""
                 }
-                is Result.Success -> {
-                    viewModel.saveSession(it.data)
-                    binding.progressBar.hide()
 
-                    val intent = Intent(requireContext(), MainActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-                    startActivity(intent)
-                    activity?.finish()
+                is Result.Success -> {
+                    loginProcess(result.data)
+                    binding.progressBar.hide()
                 }
+
                 is Result.Error -> {
                     binding.progressBar.hide()
                     binding.btnLogin.text = getString(R.string.log_in)
-                    toast(it.error)
+                    toast(result.error)
                 }
             }
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun loginProcess(token: String) {
+        Preferences.saveToken(token, requireContext())
+
+        val intent = Intent(requireContext(), AuthActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
     }
+
 }

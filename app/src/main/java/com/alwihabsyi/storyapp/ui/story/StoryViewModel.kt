@@ -9,7 +9,7 @@ class StoryViewModel(
     private val repository: Repository
 ): ViewModel() {
 
-    fun uploadImage(file: MultipartBody.Part, description: RequestBody) =
-        repository.uploadData(file, description)
+    fun uploadImage(token: String, file: MultipartBody.Part, description: RequestBody) =
+        repository.uploadData(token, file, description)
 
 }

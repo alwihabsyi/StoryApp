@@ -6,9 +6,7 @@ import com.alwihabsyi.storyapp.data.remote.ApiService
 import com.alwihabsyi.storyapp.data.remote.ListStory
 import com.alwihabsyi.storyapp.data.remote.PostResponse
 import com.alwihabsyi.storyapp.data.user.UserModel
-import com.alwihabsyi.storyapp.data.user.UserPreferences
 import com.google.gson.Gson
-import kotlinx.coroutines.flow.Flow
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Call
@@ -17,7 +15,6 @@ import retrofit2.HttpException
 import retrofit2.Response
 
 class Repository private constructor(
-    private val userPreferences: UserPreferences,
     private val apiService: ApiService
 ) {
     private val result = MediatorLiveData<Result<UserModel>>()
@@ -35,7 +32,7 @@ class Repository private constructor(
                     if (response.isSuccessful) {
                         val user = UserModel(
                             email,
-                            null,
+                            "null",
                             false
                         )
                         result.value = Result.Success(user)
@@ -58,42 +55,46 @@ class Repository private constructor(
         return result
     }
 
-    fun login(email: String, password: String): LiveData<Result<UserModel>> {
-        result.value = Result.Loading
+    fun login(email: String, password: String): LiveData<Result<String>> {
+        uploadResult.value = Result.Loading
 
         val client = apiService.login(email, password)
         client.enqueue(object : Callback<PostResponse> {
             override fun onResponse(call: Call<PostResponse>, response: Response<PostResponse>) {
                 try {
                     if (response.isSuccessful) {
-                        val userResponse = UserModel(
-                            email,
-                            token = response.body()?.loginResult?.token,
-                            isLogin = true
-                        )
-                        result.value = Result.Success(userResponse)
+                        val responseBody = response.body()
+                        if (responseBody != null){
+//                            val userResponse = UserModel(
+//                                email,
+//                                token = responseBody.loginResult!!.token.toString(),
+//                                isLogin = true
+//                            )
+                            uploadResult.value = Result.Success(responseBody.loginResult!!.token!!)
+                        }
                     } else {
                         throw HttpException(response)
                     }
                 } catch (e: HttpException) {
                     val jsonInString = e.response()?.errorBody()?.string()
                     val errorBody = Gson().fromJson(jsonInString, PostResponse::class.java)
-                    result.value = Result.Error(errorBody.message)
+                    uploadResult.value = Result.Error(errorBody.message)
                 }
             }
 
             override fun onFailure(call: Call<PostResponse>, t: Throwable) {
-                result.value = Result.Error(t.message.toString())
+                uploadResult.value = Result.Error(t.message.toString())
             }
 
         })
 
-        return result
+        return uploadResult
     }
 
-    fun getAllUser(): LiveData<Result<List<ListStory>>> {
+    fun getAllUser(token: String): LiveData<Result<List<ListStory>>> {
         listStoryResult.value = Result.Loading
-        val client = apiService.getAllStories()
+        val finalToken = "Bearer $token"
+        val client = apiService.getAllStories(finalToken)
         client.enqueue(object : Callback<PostResponse> {
             override fun onResponse(call: Call<PostResponse>, response: Response<PostResponse>) {
                 try {
@@ -119,9 +120,10 @@ class Repository private constructor(
         return listStoryResult
     }
 
-    fun getDetailUser(id: String): LiveData<Result<ListStory>> {
+    fun getDetailUser(token: String,id: String): LiveData<Result<ListStory>> {
         detailResult.value = Result.Loading
-        val client = apiService.getStoryDetail(id)
+        val finalToken = "Bearer $token"
+        val client = apiService.getStoryDetail(finalToken, id)
         client.enqueue(object : Callback<PostResponse> {
             override fun onResponse(call: Call<PostResponse>, response: Response<PostResponse>) {
                 try {
@@ -148,10 +150,10 @@ class Repository private constructor(
         return detailResult
     }
 
-    fun uploadData(file: MultipartBody.Part, description: RequestBody): LiveData<Result<String>> {
+    fun uploadData(token: String, file: MultipartBody.Part, description: RequestBody): LiveData<Result<String>> {
         uploadResult.value = Result.Loading
-
-        val client = apiService.uploadImage(file, description)
+        val finalToken = "Bearer $token"
+        val client = apiService.uploadImage(finalToken, file, description)
         client.enqueue(object : Callback<PostResponse> {
             override fun onResponse(call: Call<PostResponse>, response: Response<PostResponse>) {
                 try {
@@ -178,29 +180,16 @@ class Repository private constructor(
         })
 
         return uploadResult
-    }
 
-    suspend fun saveSession(user: UserModel) {
-        userPreferences.saveSession(user)
-    }
-
-    fun getSession(): Flow<UserModel> {
-        return userPreferences.getSession()
-    }
-
-    suspend fun logout() {
-        userPreferences.logout()
     }
 
     companion object {
-        @Volatile
         private var instance: Repository? = null
         fun getInstance(
-            userPreference: UserPreferences,
             apiService: ApiService
         ): Repository =
             instance ?: synchronized(this) {
-                instance ?: Repository(userPreference, apiService)
+                instance ?: Repository(apiService)
             }.also { instance = it }
     }
 

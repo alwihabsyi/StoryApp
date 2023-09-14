@@ -7,6 +7,6 @@ class DetailViewModel(
     private val repository: Repository
 ): ViewModel() {
 
-    fun getUserDetail(id: String) = repository.getDetailUser(id)
+    fun getUserDetail(token: String, id: String) = repository.getDetailUser(token, id)
 
 }

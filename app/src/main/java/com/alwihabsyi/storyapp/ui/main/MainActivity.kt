@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.alwihabsyi.storyapp.data.Preferences
 import com.alwihabsyi.storyapp.data.Result
 import com.alwihabsyi.storyapp.data.remote.ListStory
 import com.alwihabsyi.storyapp.databinding.ActivityMainBinding
@@ -12,6 +13,7 @@ import com.alwihabsyi.storyapp.ui.ViewModelFactory
 import com.alwihabsyi.storyapp.ui.auth.AuthActivity
 import com.alwihabsyi.storyapp.ui.detail.DetailActivity
 import com.alwihabsyi.storyapp.ui.story.StoryActivity
+import com.alwihabsyi.storyapp.utils.Constants.TOKEN
 import com.alwihabsyi.storyapp.utils.hide
 import com.alwihabsyi.storyapp.utils.show
 import com.alwihabsyi.storyapp.utils.toast
@@ -21,7 +23,7 @@ class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel by viewModels<MainViewModel> { ViewModelFactory.getInstance(this) }
+    private val viewModel by viewModels<MainViewModel> { ViewModelFactory() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupAction() {
         binding.actionLogout.setOnClickListener {
-            viewModel.logOut()
+            Preferences.logOut(this)
             val intent = Intent(this, AuthActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
@@ -47,20 +49,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observer() {
-        viewModel.getAllStories().observe(this) { result ->
-            when (result) {
-                is Result.Loading -> {
-                    binding.progressBar.show()
-                }
+        val sharedPref = Preferences.init(this, "session")
+        val token = sharedPref.getString(TOKEN, "")
 
-                is Result.Success -> {
-                    binding.progressBar.hide()
-                    setupRvData(result.data)
-                }
+        if (token != "") {
+            viewModel.getAllStories(token!!).observe(this) { result ->
+                when (result) {
+                    is Result.Loading -> {
+                        binding.progressBar.show()
+                    }
 
-                is Result.Error -> {
-                    binding.progressBar.hide()
-                    toast(result.error)
+                    is Result.Success -> {
+                        binding.progressBar.hide()
+                        setupRvData(result.data)
+                    }
+
+                    is Result.Error -> {
+                        binding.progressBar.hide()
+                        toast(result.error)
+                    }
                 }
             }
         }
