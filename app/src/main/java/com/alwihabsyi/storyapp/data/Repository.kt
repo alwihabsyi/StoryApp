@@ -1,11 +1,18 @@
 package com.alwihabsyi.storyapp.data
 
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
+import androidx.paging.ExperimentalPagingApi
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.liveData
+import com.alwihabsyi.storyapp.data.local.StoryDatabase
+import com.alwihabsyi.storyapp.data.local.StoryRemoteMediator
 import com.alwihabsyi.storyapp.data.remote.ApiService
 import com.alwihabsyi.storyapp.data.remote.ListStory
 import com.alwihabsyi.storyapp.data.remote.PostResponse
-import com.alwihabsyi.storyapp.data.user.UserModel
 import com.google.gson.Gson
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -15,11 +22,14 @@ import retrofit2.HttpException
 import retrofit2.Response
 
 class Repository private constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val database: StoryDatabase,
+    private val lifecycleOwner: LifecycleOwner
 ) {
     private val result = MediatorLiveData<Result<UserModel>>()
-    private val listStoryResult = MediatorLiveData<Result<List<ListStory>>>()
+    private val listStoryResult = MediatorLiveData<Result<PagingData<ListStory>>>()
     private val detailResult = MediatorLiveData<Result<ListStory>>()
+    private val storyWithLocationResult = MediatorLiveData<Result<List<ListStory>>>()
     private val uploadResult = MediatorLiveData<Result<String>>()
 
     fun register(name: String, email: String, password: String): LiveData<Result<UserModel>> {
@@ -64,12 +74,7 @@ class Repository private constructor(
                 try {
                     if (response.isSuccessful) {
                         val responseBody = response.body()
-                        if (responseBody != null){
-//                            val userResponse = UserModel(
-//                                email,
-//                                token = responseBody.loginResult!!.token.toString(),
-//                                isLogin = true
-//                            )
+                        if (responseBody != null) {
                             uploadResult.value = Result.Success(responseBody.loginResult!!.token!!)
                         }
                     } else {
@@ -91,36 +96,51 @@ class Repository private constructor(
         return uploadResult
     }
 
-    fun getAllUser(token: String): LiveData<Result<List<ListStory>>> {
+    @OptIn(ExperimentalPagingApi::class)
+    fun getAllUser(token: String): LiveData<Result<PagingData<ListStory>>> {
         listStoryResult.value = Result.Loading
         val finalToken = "Bearer $token"
-        val client = apiService.getAllStories(finalToken)
-        client.enqueue(object : Callback<PostResponse> {
-            override fun onResponse(call: Call<PostResponse>, response: Response<PostResponse>) {
-                try {
-                    if (response.isSuccessful) {
-                        val story = response.body()?.listStory as List<ListStory>
-                        listStoryResult.value = Result.Success(story)
-                    } else {
-                        throw HttpException(response)
-                    }
-                } catch (e: HttpException) {
-                    val jsonInString = e.response()?.errorBody()?.string()
-                    val errorBody = Gson().fromJson(jsonInString, PostResponse::class.java)
-                    val errorMessage = errorBody.message
-                    listStoryResult.value = Result.Error(errorMessage)
+        try {
+            val paging = Pager(
+                config = PagingConfig(pageSize = 5),
+                remoteMediator = StoryRemoteMediator(database, apiService, finalToken),
+                pagingSourceFactory = {
+                    database.storyDao().getAllStory()
                 }
-            }
+            ).liveData
 
-            override fun onFailure(call: Call<PostResponse>, t: Throwable) {
-                listStoryResult.value = Result.Error(t.message.toString())
+            paging.observe(lifecycleOwner){
+                listStoryResult.value = Result.Success(it)
             }
-        })
+        } catch (e: Exception) {
+            listStoryResult.value = Result.Error(e.message!!)
+        }
 
         return listStoryResult
     }
 
-    fun getDetailUser(token: String,id: String): LiveData<Result<ListStory>> {
+    suspend fun getStoriesWithLocation(token: String): LiveData<Result<List<ListStory>>> {
+        storyWithLocationResult.value = Result.Loading
+        val finalToken = "Bearer $token"
+        try {
+            val client = apiService.getStoriesWIthLocation(finalToken)
+            if (client.isSuccessful) {
+                val listStory = client.body()?.listStory
+                storyWithLocationResult.value = Result.Success(listStory!!)
+            } else {
+                throw HttpException(client)
+            }
+        } catch (e: HttpException) {
+            val jsonInString = e.response()?.errorBody()?.string()
+            val errorBody = Gson().fromJson(jsonInString, PostResponse::class.java)
+            val errorMessage = errorBody.message
+            storyWithLocationResult.value = Result.Error(errorMessage)
+        }
+
+        return storyWithLocationResult
+    }
+
+    fun getDetailUser(token: String, id: String): LiveData<Result<ListStory>> {
         detailResult.value = Result.Loading
         val finalToken = "Bearer $token"
         val client = apiService.getStoryDetail(finalToken, id)
@@ -150,7 +170,11 @@ class Repository private constructor(
         return detailResult
     }
 
-    fun uploadData(token: String, file: MultipartBody.Part, description: RequestBody): LiveData<Result<String>> {
+    fun uploadData(
+        token: String,
+        file: MultipartBody.Part,
+        description: RequestBody
+    ): LiveData<Result<String>> {
         uploadResult.value = Result.Loading
         val finalToken = "Bearer $token"
         val client = apiService.uploadImage(finalToken, file, description)
@@ -186,10 +210,12 @@ class Repository private constructor(
     companion object {
         private var instance: Repository? = null
         fun getInstance(
-            apiService: ApiService
+            apiService: ApiService,
+            database: StoryDatabase,
+            lifecycleOwner: LifecycleOwner
         ): Repository =
             instance ?: synchronized(this) {
-                instance ?: Repository(apiService)
+                instance ?: Repository(apiService, database, lifecycleOwner)
             }.also { instance = it }
     }
 

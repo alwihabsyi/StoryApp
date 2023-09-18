@@ -23,7 +23,7 @@ class RegisterFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel by viewModels<RegisterViewModel> {
-        ViewModelFactory()
+        ViewModelFactory(requireContext(), viewLifecycleOwner)
     }
 
     override fun onCreateView(

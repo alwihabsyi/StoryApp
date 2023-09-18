@@ -38,7 +38,7 @@ class StoryActivity : AppCompatActivity() {
     private var _binding: ActivityStoryBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel by viewModels<StoryViewModel> { ViewModelFactory() }
+    private val viewModel by viewModels<StoryViewModel> { ViewModelFactory(this, this) }
 
     private var photoPath: String? = null
     private var setFile: File? = null

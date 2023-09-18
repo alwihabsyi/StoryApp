@@ -21,7 +21,7 @@ class DetailActivity : AppCompatActivity() {
     private var _binding: ActivityDetailBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel by viewModels<DetailViewModel> { ViewModelFactory() }
+    private val viewModel by viewModels<DetailViewModel> { ViewModelFactory(this, this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -24,7 +24,7 @@ class LoginFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel by viewModels<LoginViewModel> {
-        ViewModelFactory()
+        ViewModelFactory(requireContext(), viewLifecycleOwner)
     }
 
     override fun onCreateView(

@@ -1,4 +1,4 @@
-package com.alwihabsyi.storyapp.data.user
+package com.alwihabsyi.storyapp.data
 
 data class UserModel(
     val email: String? = null,

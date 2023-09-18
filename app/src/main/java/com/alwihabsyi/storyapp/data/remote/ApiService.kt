@@ -3,6 +3,7 @@ package com.alwihabsyi.storyapp.data.remote
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Call
+import retrofit2.Response
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -11,6 +12,7 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ApiService {
 
@@ -30,9 +32,17 @@ interface ApiService {
     ): Call<PostResponse>
 
     @GET("stories")
-    fun getAllStories(
-        @Header("Authorization") token: String
-    ): Call<PostResponse>
+    suspend fun getAllStories(
+        @Header("Authorization") token: String,
+        @Query("page") page: Int,
+        @Query("size") size: Int
+    ): Response<PostResponse>
+
+    @GET("stories")
+    suspend fun getStoriesWIthLocation(
+        @Header("Authorization") token: String,
+        @Query("location") loc: Int = 1
+    ): Response<PostResponse>
 
     @GET("stories/{id}")
     fun getStoryDetail(

@@ -1,5 +1,7 @@
 package com.alwihabsyi.storyapp.data.remote
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 
 
@@ -32,10 +34,12 @@ data class LoginResult(
     val token: String? = null
 )
 
+@Entity(tableName = "list_story")
 data class ListStory(
 
+    @PrimaryKey
     @field:SerializedName("id")
-    val id: String? = null,
+    val id: String = "",
 
     @field:SerializedName("name")
     val name: String? = null,
@@ -49,4 +53,10 @@ data class ListStory(
     @field:SerializedName("createdAt")
     val createdAt: String? = null,
 
-)
+    @field:SerializedName("lat")
+    val lat: Double? = null,
+
+    @field:SerializedName("lon")
+    val lon: Double? = null,
+
+    )

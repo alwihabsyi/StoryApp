@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.activity.viewModels
+import androidx.paging.PagingData
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.alwihabsyi.storyapp.data.Preferences
 import com.alwihabsyi.storyapp.data.Result
@@ -12,6 +13,7 @@ import com.alwihabsyi.storyapp.databinding.ActivityMainBinding
 import com.alwihabsyi.storyapp.ui.ViewModelFactory
 import com.alwihabsyi.storyapp.ui.auth.AuthActivity
 import com.alwihabsyi.storyapp.ui.detail.DetailActivity
+import com.alwihabsyi.storyapp.ui.maps.MapsActivity
 import com.alwihabsyi.storyapp.ui.story.StoryActivity
 import com.alwihabsyi.storyapp.utils.Constants.TOKEN
 import com.alwihabsyi.storyapp.utils.hide
@@ -23,7 +25,7 @@ class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel by viewModels<MainViewModel> { ViewModelFactory() }
+    private val viewModel by viewModels<MainViewModel> { ViewModelFactory(this, this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +48,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnAddStory.setOnClickListener {
             startActivity(Intent(this, StoryActivity::class.java))
         }
+
+        binding.actionMaps.setOnClickListener {
+            startActivity(Intent(this, MapsActivity::class.java))
+        }
     }
 
     private fun observer() {
@@ -61,7 +67,7 @@ class MainActivity : AppCompatActivity() {
 
                     is Result.Success -> {
                         binding.progressBar.hide()
-                        setupRvData(result.data)
+                        getData(result.data)
                     }
 
                     is Result.Error -> {
@@ -73,10 +79,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRvData(data: List<ListStory>) {
+    private fun getData(data: PagingData<ListStory>) {
         val adapter = StoryAdapter()
-        adapter.differ.submitList(data)
-        binding.recyclerView.adapter = adapter
+        binding.recyclerView.adapter = adapter.withLoadStateFooter(
+            footer = LoadingStateAdapter()
+        )
+
+        adapter.submitData(lifecycle, data)
 
         adapter.onClick = {
             val intent = Intent(this, DetailActivity::class.java)
