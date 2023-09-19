@@ -4,11 +4,8 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.activity.viewModels
-import androidx.paging.PagingData
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.alwihabsyi.storyapp.data.Preferences
-import com.alwihabsyi.storyapp.data.Result
-import com.alwihabsyi.storyapp.data.remote.ListStory
 import com.alwihabsyi.storyapp.databinding.ActivityMainBinding
 import com.alwihabsyi.storyapp.ui.ViewModelFactory
 import com.alwihabsyi.storyapp.ui.auth.AuthActivity
@@ -16,16 +13,13 @@ import com.alwihabsyi.storyapp.ui.detail.DetailActivity
 import com.alwihabsyi.storyapp.ui.maps.MapsActivity
 import com.alwihabsyi.storyapp.ui.story.StoryActivity
 import com.alwihabsyi.storyapp.utils.Constants.TOKEN
-import com.alwihabsyi.storyapp.utils.hide
-import com.alwihabsyi.storyapp.utils.show
-import com.alwihabsyi.storyapp.utils.toast
 
 class MainActivity : AppCompatActivity() {
 
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel by viewModels<MainViewModel> { ViewModelFactory(this, this) }
+    private val viewModel by viewModels<MainViewModel> { ViewModelFactory(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,38 +53,22 @@ class MainActivity : AppCompatActivity() {
         val token = sharedPref.getString(TOKEN, "")
 
         if (token != "") {
-            viewModel.getAllStories(token!!).observe(this) { result ->
-                when (result) {
-                    is Result.Loading -> {
-                        binding.progressBar.show()
-                    }
+            val adapter = StoryAdapter()
+            binding.recyclerView.adapter = adapter.withLoadStateFooter(
+                footer = LoadingStateAdapter()
+            )
 
-                    is Result.Success -> {
-                        binding.progressBar.hide()
-                        getData(result.data)
-                    }
-
-                    is Result.Error -> {
-                        binding.progressBar.hide()
-                        toast(result.error)
-                    }
+            viewModel.getAllStories(token!!).observe(this) {
+                if (it != null){
+                    adapter.submitData(lifecycle, it)
                 }
             }
-        }
-    }
 
-    private fun getData(data: PagingData<ListStory>) {
-        val adapter = StoryAdapter()
-        binding.recyclerView.adapter = adapter.withLoadStateFooter(
-            footer = LoadingStateAdapter()
-        )
-
-        adapter.submitData(lifecycle, data)
-
-        adapter.onClick = {
-            val intent = Intent(this, DetailActivity::class.java)
-            intent.putExtra("id", it.id)
-            startActivity(intent)
+            adapter.onClick = {
+                val intent = Intent(this@MainActivity, DetailActivity::class.java)
+                intent.putExtra(DetailActivity.USER, it)
+                startActivity(intent)
+            }
         }
     }
 

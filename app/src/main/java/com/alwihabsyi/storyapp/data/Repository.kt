@@ -1,6 +1,5 @@
 package com.alwihabsyi.storyapp.data
 
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.paging.ExperimentalPagingApi
@@ -23,12 +22,9 @@ import retrofit2.Response
 
 class Repository private constructor(
     private val apiService: ApiService,
-    private val database: StoryDatabase,
-    private val lifecycleOwner: LifecycleOwner
+    private val database: StoryDatabase
 ) {
     private val result = MediatorLiveData<Result<UserModel>>()
-    private val listStoryResult = MediatorLiveData<Result<PagingData<ListStory>>>()
-    private val detailResult = MediatorLiveData<Result<ListStory>>()
     private val storyWithLocationResult = MediatorLiveData<Result<List<ListStory>>>()
     private val uploadResult = MediatorLiveData<Result<String>>()
 
@@ -97,26 +93,15 @@ class Repository private constructor(
     }
 
     @OptIn(ExperimentalPagingApi::class)
-    fun getAllUser(token: String): LiveData<Result<PagingData<ListStory>>> {
-        listStoryResult.value = Result.Loading
+    fun getAllUser(token: String): LiveData<PagingData<ListStory>> {
         val finalToken = "Bearer $token"
-        try {
-            val paging = Pager(
-                config = PagingConfig(pageSize = 5),
-                remoteMediator = StoryRemoteMediator(database, apiService, finalToken),
-                pagingSourceFactory = {
-                    database.storyDao().getAllStory()
-                }
-            ).liveData
-
-            paging.observe(lifecycleOwner){
-                listStoryResult.value = Result.Success(it)
+        return Pager(
+            config = PagingConfig(pageSize = 5),
+            remoteMediator = StoryRemoteMediator(database, apiService, finalToken),
+            pagingSourceFactory = {
+                database.storyDao().getAllStory()
             }
-        } catch (e: Exception) {
-            listStoryResult.value = Result.Error(e.message!!)
-        }
-
-        return listStoryResult
+        ).liveData
     }
 
     suspend fun getStoriesWithLocation(token: String): LiveData<Result<List<ListStory>>> {
@@ -138,36 +123,6 @@ class Repository private constructor(
         }
 
         return storyWithLocationResult
-    }
-
-    fun getDetailUser(token: String, id: String): LiveData<Result<ListStory>> {
-        detailResult.value = Result.Loading
-        val finalToken = "Bearer $token"
-        val client = apiService.getStoryDetail(finalToken, id)
-        client.enqueue(object : Callback<PostResponse> {
-            override fun onResponse(call: Call<PostResponse>, response: Response<PostResponse>) {
-                try {
-                    if (response.isSuccessful) {
-                        val story = response.body()?.story as ListStory
-                        detailResult.value = Result.Success(story)
-                    } else {
-                        throw HttpException(response)
-                    }
-                } catch (e: HttpException) {
-                    val jsonInString = e.response()?.errorBody()?.string()
-                    val errorBody = Gson().fromJson(jsonInString, PostResponse::class.java)
-                    val errorMessage = errorBody.message
-                    detailResult.value = Result.Error(errorMessage)
-                }
-            }
-
-            override fun onFailure(call: Call<PostResponse>, t: Throwable) {
-                detailResult.value = Result.Error(t.message.toString())
-            }
-
-        })
-
-        return detailResult
     }
 
     fun uploadData(
@@ -211,11 +166,10 @@ class Repository private constructor(
         private var instance: Repository? = null
         fun getInstance(
             apiService: ApiService,
-            database: StoryDatabase,
-            lifecycleOwner: LifecycleOwner
+            database: StoryDatabase
         ): Repository =
             instance ?: synchronized(this) {
-                instance ?: Repository(apiService, database, lifecycleOwner)
+                instance ?: Repository(apiService, database)
             }.also { instance = it }
     }
 

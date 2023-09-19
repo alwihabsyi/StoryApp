@@ -3,9 +3,10 @@ package com.alwihabsyi.storyapp.utils
 import com.alwihabsyi.storyapp.data.remote.ListStory
 import com.alwihabsyi.storyapp.data.remote.LoginResult
 import com.alwihabsyi.storyapp.data.remote.PostResponse
+import com.alwihabsyi.storyapp.data.remote.StoriesResponse
 
 object DataDummy {
-    fun generateDummyStories(): PostResponse {
+    fun generateDummyStories(): StoriesResponse {
         val listStory = ArrayList<ListStory>()
         for (i in 1..20) {
             val story = ListStory(
@@ -20,7 +21,17 @@ object DataDummy {
             listStory.add(story)
         }
 
-        return PostResponse(
+        return StoriesResponse(
+            error = false,
+            message = "Stories fetched successfully",
+            listStory = listStory
+        )
+    }
+
+    fun generateNullDummyStories(): StoriesResponse {
+        val listStory = ArrayList<ListStory>()
+
+        return StoriesResponse(
             error = false,
             message = "Stories fetched successfully",
             listStory = listStory

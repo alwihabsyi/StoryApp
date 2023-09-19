@@ -31,7 +31,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var _binding: ActivityMapsBinding? = null
     private val binding get() = _binding!!
-    private val viewModel by viewModels<MapsViewModel> { ViewModelFactory(this, this) }
+    private val viewModel by viewModels<MapsViewModel> { ViewModelFactory(this) }
     private lateinit var mMap: GoogleMap
     private val boundsBuilder = LatLngBounds.Builder()
 
